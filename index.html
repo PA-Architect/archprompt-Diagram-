@@ -1,1203 +1,677 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARCHPROMPT — AI Diagram Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>팀 휴가 캘린더</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#2754c5">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<script>
+  // =================================================================
+  //  ▼ 설정: Supabase > Project Settings > API 에서 복사해 붙여넣기
+  //  (anon public key 는 공개되어도 안전한 키입니다. service_role 키는 절대 넣지 마세요.)
+  // =================================================================
+  window.TEAM_LEAVE_CONFIG = {
+    SUPABASE_URL: "https://otfggkzxspsvxljogwgj.supabase.co",
+    SUPABASE_ANON_KEY: "sb_publishable_hfmN0pqZmUOiwUYEX61NTw_cgnyS78Z",
+    TEAM_NAME: "설계2실"
+  };
+</script>
 <style>
-/* ═══════════════════════════════════
-   TOKENS
-═══════════════════════════════════ */
-:root {
-  --green:       #5a7d5a;
-  --green-light: #8aab7e;
-  --green-dark:  #3a5a3a;
-  --green-muted: rgba(90,125,90,0.08);
-  --bg:          #f2f0eb;
-  --card:        #faf9f6;
-  --border:      #e0dcd4;
-  --text:        #1a1a1a;
-  --muted:       #8a8880;
-  --danger:      #a84040;
-  --shadow:      0 2px 16px rgba(0,0,0,0.07);
-  --shadow-lg:   0 8px 32px rgba(0,0,0,0.12);
-  --r:           10px;
-  --r-sm:        6px;
-}
-
-/* ═══════════════════════════════════
-   RESET
-═══════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-body {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  background: var(--bg); color: var(--text);
-  min-height: 100vh; overflow-x: hidden;
-}
-a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; }
-
-/* ═══════════════════════════════════
-   TOPBAR
-═══════════════════════════════════ */
-.topbar {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(242,240,235,0.94);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
-  height: 56px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 40px;
-}
-.topbar-brand {
-  font-family: 'DM Mono', monospace;
-  font-size: 13px; letter-spacing: 4px;
-  color: var(--green-dark); font-weight: 500;
-}
-.topbar-brand span { color: var(--muted); font-weight: 300; }
-.topbar-nav { display: flex; align-items: center; gap: 8px; }
-.nav-btn {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-  background: none; border: 1px solid var(--border);
-  border-radius: 20px; padding: 5px 14px;
-  color: var(--muted); transition: all 0.2s;
-}
-.nav-btn:hover { border-color: var(--green); color: var(--green); }
-.nav-btn.page-active { background: var(--green); color: #fff; border-color: var(--green); }
-
-/* ═══════════════════════════════════
-   PAGES
-═══════════════════════════════════ */
-.page { display: none; }
-.page.active { display: block; animation: fadeIn 0.4s ease both; }
-
-/* ═══════════════════════════════════
-   ── LANDING PAGE ──
-═══════════════════════════════════ */
-.hero {
-  min-height: calc(100vh - 56px);
-  display: flex; align-items: center;
-  padding: 80px 40px 60px;
-  position: relative; overflow: hidden;
-}
-.hero::before {
-  content: '';
-  position: absolute; top: -80px; right: -120px;
-  width: 520px; height: 520px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(90,125,90,0.07), transparent 70%);
-  pointer-events: none;
-}
-.hero-inner { max-width: 980px; margin: 0 auto; width: 100%; }
-.hero-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px; letter-spacing: 4px; color: var(--green);
-  text-transform: uppercase; margin-bottom: 20px;
-  display: flex; align-items: center; gap: 10px;
-  animation: fadeDown 0.7s ease both;
-}
-.hero-label::before { content: ''; width: 28px; height: 1px; background: var(--green); }
-.hero-h1 {
-  font-size: clamp(44px, 7vw, 82px);
-  font-weight: 300; line-height: 1.02;
-  letter-spacing: -2.5px; margin-bottom: 26px;
-  animation: fadeUp 0.7s 0.1s ease both;
-}
-.hero-h1 em { font-style: italic; color: var(--green); }
-.hero-desc {
-  font-size: 17px; color: var(--muted); font-weight: 300;
-  max-width: 480px; line-height: 1.75; margin-bottom: 40px;
-  animation: fadeUp 0.7s 0.2s ease both;
-}
-.hero-cta {
-  display: flex; gap: 12px; flex-wrap: wrap;
-  animation: fadeUp 0.7s 0.3s ease both;
-}
-.btn-hero {
-  font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-  border: none; border-radius: 8px; padding: 15px 32px;
-  cursor: pointer; transition: all 0.2s;
-}
-.btn-hero-primary {
-  background: var(--green); color: #fff;
-}
-.btn-hero-primary:hover {
-  background: var(--green-dark); transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(58,90,58,0.25);
-}
-.btn-hero-ghost {
-  background: none; color: var(--muted);
-  border: 1px solid var(--border);
-}
-.btn-hero-ghost:hover { border-color: var(--green); color: var(--green); }
-
-.hero-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 10px; margin-top: 56px; max-width: 340px;
-  animation: fadeUp 0.7s 0.4s ease both;
-}
-.hero-cell {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; aspect-ratio: 1;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; opacity: 0.55;
-  transition: all 0.25s; cursor: default;
-}
-.hero-cell:hover { opacity: 1; transform: translateY(-3px); box-shadow: var(--shadow); }
-
-/* Features */
-.features { padding: 80px 40px; max-width: 980px; margin: 0 auto; }
-.sec-label {
-  font-family: 'DM Mono', monospace;
-  font-size: 9px; letter-spacing: 4px; color: var(--muted);
-  text-transform: uppercase; margin-bottom: 36px;
-  display: flex; align-items: center; gap: 12px;
-}
-.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.feat-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 28px;
-  transition: all 0.22s; animation: fadeUp 0.5s ease both;
-}
-.feat-card:hover { border-color: var(--green-light); box-shadow: var(--shadow); transform: translateY(-2px); }
-.feat-icon { font-size: 26px; margin-bottom: 14px; }
-.feat-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.3px; }
-.feat-desc { font-size: 14px; color: var(--muted); line-height: 1.72; font-weight: 300; }
-.feat-tag {
-  display: inline-block; margin-top: 14px;
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; color: var(--green); text-transform: uppercase;
-  border: 1px solid rgba(90,125,90,0.28); border-radius: 20px; padding: 3px 10px;
-}
-
-/* Flow */
-.flow { padding: 0 40px 80px; max-width: 980px; margin: 0 auto; }
-.flow-steps {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 0; position: relative;
-}
-.flow-steps::before {
-  content: ''; position: absolute; top: 27px; left: 12.5%; right: 12.5%;
-  height: 1px; background: var(--border); z-index: 0;
-}
-.flow-step {
-  display: flex; flex-direction: column; align-items: center;
-  text-align: center; padding: 0 10px; position: relative; z-index: 1;
-}
-.flow-num {
-  width: 54px; height: 54px; border-radius: 50%;
-  background: var(--card); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Mono', monospace; font-size: 13px; color: var(--green);
-  margin-bottom: 14px; transition: all 0.2s;
-}
-.flow-step:hover .flow-num { background: var(--green); color: #fff; border-color: var(--green); }
-.flow-step-t { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
-.flow-step-d { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
-
-/* Styles section */
-.styles-strip {
-  background: #eeecea; border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border); padding: 60px 40px;
-}
-.styles-inner { max-width: 980px; margin: 0 auto; }
-.styles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 32px; }
-.style-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--r); overflow: hidden; transition: all 0.22s;
-}
-.style-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
-.style-preview {
-  height: 140px; display: flex; align-items: center;
-  justify-content: center; font-size: 44px;
-}
-.sp-green { background: linear-gradient(135deg, #e8f0e8, #f5f5f0); }
-.sp-blue  { background: linear-gradient(135deg, #e6eef5, #f2f5f8); }
-.sp-white { background: linear-gradient(135deg, #f8f8f8, #fff); border-bottom: 1px solid var(--border); }
-.style-info { padding: 16px; }
-.style-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-.style-note { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; }
-
-/* Landing footer */
-.land-footer {
-  padding: 40px; text-align: center;
-  border-top: 1px solid var(--border);
-}
-.land-footer-brand {
-  font-family: 'DM Mono', monospace; font-size: 13px;
-  letter-spacing: 4px; color: var(--green-dark); margin-bottom: 8px;
-}
-.land-footer-sub {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--muted); letter-spacing: 2px;
-}
-
-/* ═══════════════════════════════════
-   ── APP PAGE ──
-═══════════════════════════════════ */
-.app-wrap { max-width: 1000px; margin: 0 auto; padding: 32px 32px 60px; }
-.app-header { margin-bottom: 28px; animation: fadeDown 0.5s ease both; }
-.app-header-sub {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: 3px; color: var(--muted); text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.app-header h2 {
-  font-size: 30px; font-weight: 300; letter-spacing: -0.8px;
-}
-.app-header h2 em { font-style: italic; color: var(--green); }
-
-.section { margin-bottom: 14px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
-
-/* Card */
-.card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 22px;
-  animation: fadeUp 0.5s ease both;
-}
-.card-label {
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 3px; color: var(--muted); text-transform: uppercase;
-  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
-}
-.card-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-/* Radio */
-.radio-group { display: flex; flex-direction: column; gap: 7px; }
-.radio-item {
-  display: flex; align-items: center; gap: 10px;
-  cursor: pointer; padding: 8px 10px;
-  border-radius: var(--r-sm); border: 1px solid transparent;
-  transition: all 0.18s;
-}
-.radio-item:hover { background: #f0ede6; border-color: var(--border); }
-.radio-item input[type="radio"] { display: none; }
-.radio-dot {
-  width: 15px; height: 15px; border-radius: 50%;
-  border: 2px solid var(--border); flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.18s;
-}
-.radio-dot::after {
-  content: ''; width: 6px; height: 6px;
-  border-radius: 50%; background: #fff; transition: all 0.18s;
-}
-.radio-item input:checked ~ .radio-dot { border-color: var(--green); background: var(--green); }
-.radio-item input:checked ~ .radio-label { color: var(--green-dark); font-weight: 600; }
-.radio-label { font-size: 13.5px; color: #444; transition: color 0.18s; }
-
-/* Inputs */
-input[type="text"], textarea {
-  font-family: 'Cormorant Garamond', serif; font-size: 13.5px;
-  color: var(--text); background: #fff;
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 9px 12px; width: 100%; outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-input:focus, textarea:focus {
-  border-color: var(--green-light);
-  box-shadow: 0 0 0 3px rgba(90,125,90,0.1);
-}
-textarea { resize: vertical; line-height: 1.65; }
-
-/* Badge */
-.badge {
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px;
-  background: var(--green); color: #fff; border-radius: 20px; padding: 3px 11px;
-}
-
-/* Upload */
-.upload-zone {
-  border: 1.5px dashed var(--border); border-radius: 8px;
-  padding: 30px 20px; text-align: center; cursor: pointer;
-  transition: all 0.2s; position: relative; overflow: hidden;
-}
-.upload-zone:hover, .upload-zone.drag {
-  border-color: var(--green); background: var(--green-muted);
-}
-.upload-zone input {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 1;
-}
-.upload-icon { font-size: 28px; margin-bottom: 10px; line-height: 1; }
-.upload-title { font-size: 14px; margin-bottom: 4px; }
-.upload-sub {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--muted); letter-spacing: 1px;
-}
-.preview-wrap { display: none; border-radius: 8px; overflow: hidden; position: relative; }
-.preview-wrap img { width: 100%; height: 190px; object-fit: cover; display: block; }
-.preview-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.44);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transition: opacity 0.2s;
-}
-.preview-wrap:hover .preview-overlay { opacity: 1; }
-.preview-change-btn {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: 2px; text-transform: uppercase;
-  color: #fff; background: none;
-  border: 1px solid rgba(255,255,255,0.6);
-  border-radius: 5px; padding: 7px 16px; cursor: pointer;
-}
-.preview-change-btn:hover { background: rgba(255,255,255,0.15); }
-.analyze-btn {
-  display: none; width: 100%; margin-top: 10px; padding: 11px;
-  background: var(--green); color: #fff; border: none; border-radius: 8px;
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
-}
-.analyze-btn:hover:not(:disabled) { background: var(--green-dark); }
-.analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.analysis-box {
-  display: none; margin-top: 12px;
-  background: #f0ede6; border: 1px solid var(--border);
-  border-radius: 8px; padding: 14px; animation: fadeUp 0.3s ease both;
-}
-.analysis-box-label {
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; color: var(--green); text-transform: uppercase;
-  margin-bottom: 8px;
-}
-.analysis-box p { font-size: 13px; color: #444; line-height: 1.72; white-space: pre-wrap; }
-
-/* Steps */
-.steps-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 14px;
-}
-.add-step-btn {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: 2px; text-transform: uppercase;
-  background: none; border: 1px dashed var(--green-light);
-  border-radius: var(--r-sm); color: var(--green);
-  padding: 6px 13px; cursor: pointer; transition: all 0.2s;
-}
-.add-step-btn:hover { background: var(--green-muted); border-style: solid; }
-.steps-list { display: flex; flex-direction: column; gap: 8px; }
-.step-row {
-  display: grid; grid-template-columns: 30px 1fr 1fr 70px;
-  gap: 8px; align-items: center;
-  background: #f5f3ef; border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  animation: fadeUp 0.25s ease both;
-}
-.step-row:hover { border-color: #ccc8bf; box-shadow: var(--shadow); }
-.step-num {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--green); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Mono', monospace; font-size: 11px; flex-shrink: 0;
-}
-.step-controls { display: flex; align-items: center; gap: 3px; justify-content: flex-end; }
-.ctrl-btn {
-  background: none; border: 1px solid var(--border);
-  border-radius: 4px; width: 22px; height: 22px;
-  cursor: pointer; font-size: 11px; color: var(--muted);
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; line-height: 1;
-}
-.ctrl-btn:hover:not([disabled]) { background: var(--green); color: #fff; border-color: var(--green); }
-.ctrl-btn.del:hover:not([disabled]) { background: var(--danger); border-color: var(--danger); color: #fff; }
-.ctrl-btn[disabled] { opacity: 0.2; cursor: not-allowed; }
-.notes-area { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-.notes-label {
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px;
-}
-
-/* Output */
-.output-card { padding: 0; overflow: hidden; }
-.tab-bar { display: flex; border-bottom: 1px solid var(--border); }
-.tab-btn {
-  flex: 1; padding: 13px 6px; border: none; background: #f5f3ef;
-  color: var(--muted); font-family: 'DM Mono', monospace;
-  font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
-  cursor: pointer; transition: all 0.18s; border-bottom: 2px solid transparent;
-}
-.tab-btn.active { background: var(--card); color: var(--green-dark); border-bottom-color: var(--green); }
-.tab-btn:hover:not(.active) { background: #eeebe3; color: var(--text); }
-.tab-body { padding: 22px; }
-.gen-btn {
-  width: 100%; padding: 15px;
-  background: var(--green); color: #fff; border: none;
-  border-radius: 8px; font-family: 'DM Mono', monospace;
-  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-  cursor: pointer; transition: all 0.2s; margin-bottom: 14px;
-}
-.gen-btn:hover:not(:disabled) {
-  background: var(--green-dark); transform: translateY(-1px);
-  box-shadow: 0 5px 20px rgba(58,90,58,0.22);
-}
-.gen-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-.prompt-out {
-  background: #f0ede6; border: 1px solid var(--border);
-  border-radius: 8px; padding: 18px;
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  line-height: 1.9; color: #333; white-space: pre-wrap;
-  max-height: 300px; overflow-y: auto; display: none;
-}
-.prompt-out.show { display: block; animation: fadeUp 0.3s ease both; }
-.img-gen-wrap {
-  display: none; margin-top: 14px; border-radius: 8px;
-  overflow: hidden; border: 1px solid var(--border);
-}
-.img-gen-label {
-  padding: 10px 16px; background: #f5f3ef;
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.img-gen-wrap img { width: 100%; display: block; }
-.action-row { display: none; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.act-btn {
-  padding: 8px 18px; border-radius: var(--r-sm);
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: 2px; text-transform: uppercase;
-  cursor: pointer; transition: all 0.2s; border: 1px solid var(--border);
-  background: none; color: var(--muted);
-}
-.act-btn:hover { background: #ece9e2; }
-.act-copy { border-color: var(--green); color: var(--green); background: #fff; }
-.act-copy:hover, .act-copy.done { background: var(--green); color: #fff; border-color: var(--green); }
-
-/* Saved */
-.saved-list { display: flex; flex-direction: column; gap: 8px; }
-.saved-empty {
-  font-family: 'DM Mono', monospace; font-size: 10px;
-  color: var(--muted); letter-spacing: 2px; text-align: center; padding: 28px;
-}
-.saved-item {
-  background: #f5f3ef; border: 1px solid var(--border);
-  border-radius: 8px; padding: 12px 14px;
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 10px; transition: border-color 0.18s;
-}
-.saved-item:hover { border-color: var(--green-light); }
-.saved-item-info { flex: 1; min-width: 0; }
-.saved-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.saved-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; }
-.saved-actions { display: flex; gap: 5px; flex-shrink: 0; }
-.si-btn {
-  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px;
-  padding: 5px 10px; border-radius: 4px; cursor: pointer;
-  transition: all 0.15s; border: 1px solid var(--border);
-  background: none; color: var(--muted);
-}
-.si-btn.load:hover { background: var(--green); color: #fff; border-color: var(--green); }
-.si-btn.del:hover  { background: var(--danger); color: #fff; border-color: var(--danger); }
-
-/* Tips */
-.tip-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 18px; animation: fadeUp 0.5s ease both;
-}
-.tip-icon { font-size: 22px; margin-bottom: 10px; }
-.tip-t {
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 6px;
-}
-.tip-d { font-size: 13px; color: #666; line-height: 1.65; }
-
-/* ═══════════════════════════════════
-   MODAL
-═══════════════════════════════════ */
-.modal-bg {
-  position: fixed; inset: 0; background: rgba(20,20,18,0.45);
-  z-index: 200; display: none; align-items: center; justify-content: center;
-  backdrop-filter: blur(5px);
-}
-.modal-bg.open { display: flex; }
-.modal {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 30px;
-  width: 460px; max-width: 92vw;
-  box-shadow: var(--shadow-lg); animation: fadeUp 0.25s ease both;
-}
-.modal-title {
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  letter-spacing: 3px; text-transform: uppercase;
-  color: var(--green); margin-bottom: 22px;
-}
-.modal label {
-  font-family: 'DM Mono', monospace; font-size: 9px;
-  letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
-  display: block; margin-bottom: 8px; margin-top: 18px;
-}
-.modal label:first-of-type { margin-top: 0; }
-.modal input[type="text"] { font-family: 'DM Mono', monospace; font-size: 12px; }
-.modal-hint { font-size: 13px; color: var(--muted); line-height: 1.65; margin-top: 8px; }
-.modal-hint a { color: var(--green); }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
-.modal-cancel {
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px;
-  text-transform: uppercase; background: none; color: var(--muted);
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 9px 16px; cursor: pointer; transition: all 0.2s;
-}
-.modal-cancel:hover { background: #eee; }
-.modal-save {
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px;
-  text-transform: uppercase; background: var(--green); color: #fff;
-  border: none; border-radius: var(--r-sm);
-  padding: 9px 20px; cursor: pointer; transition: background 0.2s;
-}
-.modal-save:hover { background: var(--green-dark); }
-
-/* ═══════════════════════════════════
-   TOAST
-═══════════════════════════════════ */
-.toast {
-  position: fixed; bottom: 28px; left: 50%;
-  transform: translateX(-50%) translateY(16px);
-  background: var(--green-dark); color: #fff;
-  font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 2px;
-  padding: 11px 26px; border-radius: 30px;
-  opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300;
-  white-space: nowrap; box-shadow: var(--shadow-lg);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ═══════════════════════════════════
-   SCROLLBAR
-═══════════════════════════════════ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-/* ═══════════════════════════════════
-   ANIMATIONS
-═══════════════════════════════════ */
-@keyframes fadeDown { from { opacity:0; transform:translateY(-14px); } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeUp   { from { opacity:0; transform:translateY(12px);  } to { opacity:1; transform:translateY(0); } }
-@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
-
-/* ═══════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════ */
-@media (max-width: 720px) {
-  .topbar { padding: 0 18px; }
-  .hero { padding: 50px 20px 40px; }
-  .features, .flow { padding-left: 20px; padding-right: 20px; }
-  .features-grid, .styles-grid, .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .flow-steps { grid-template-columns: 1fr 1fr; gap: 24px; }
-  .flow-steps::before { display: none; }
-  .app-wrap { padding: 20px 18px 50px; }
-  .step-row { grid-template-columns: 28px 1fr; }
-  .step-row .step-val-input, .step-row .step-controls { display: none; }
-}
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --sunk:#eef1f5; --line:#dde2ea; --fg:#18202c; --muted:#5d6878;
+  --accent:#2754c5; --accent-fg:#ffffff; --sun:#c8372d; --sat:#2754c5; --today:#fff4d6; --danger:#b42318; --warnbg:#fff1e6;
+  --m0:#2f6fdb; --m1:#d2671b; --m2:#178a6b; --m3:#b0368f; --m4:#7656d6; --m5:#a07a00; --m6:#c23b4a; --m7:#2b8fa8;
+  --font:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#11151b; --surface:#181d25; --sunk:#141920; --line:#2a313c; --fg:#e7ebf1; --muted:#98a2b2;
+  --accent:#7ea2ff; --accent-fg:#0d1320; --sun:#ff8a80; --sat:#8fb0ff; --today:#2e2914; --danger:#ff8a7a; --warnbg:#2b1d14;
+  --m0:#7ea2ff; --m1:#f29a55; --m2:#4fc9a3; --m3:#e77cc9; --m4:#a891ff; --m5:#e0bd45; --m6:#f07a88; --m7:#5cc5df;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+.app{max-width:1240px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+h2{margin:0;font-size:15px;font-weight:600;text-wrap:balance}
+.status{margin:2px 0 0;color:var(--muted);font-size:13px}
+.status.warn{color:var(--danger)}
+.nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.month{min-width:120px;text-align:center;font-weight:600;font-size:17px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+.icon,.ghost{background:var(--surface);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 12px}
+.icon{width:34px;padding:0;font-size:18px;line-height:1}
+.icon:hover,.ghost:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,.cell:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.userbar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.userbar b{color:var(--fg);font-weight:600}
+.banner{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 12px;border-radius:10px;background:var(--warnbg);font-size:13px}
+.banner p{margin:0}
+.banner button{background:none;border:0;color:var(--muted);font-size:13px;flex:none}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:8px 10px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);letter-spacing:.04em}
+.dow div:first-child{color:var(--sun)} .dow div:last-child{color:var(--sat)}
+.cell{min-height:108px;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0;background:var(--surface);text-align:left;border-radius:0}
+.cell:nth-child(7n){border-right:0}
+.cell.out{background:var(--sunk)} .cell.out .dnum{opacity:.45}
+.cell.today{background:var(--today)}
+.cell.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.dhead{display:flex;align-items:baseline;gap:6px;min-width:0}
+.dnum{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.cell.sun .dnum,.cell.hol .dnum{color:var(--sun)} .cell.sat .dnum{color:var(--sat)}
+.hname{font-size:11px;color:var(--sun);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:flex;align-items:center;gap:5px;font-size:12px;line-height:1.35;padding:1px 6px;border-radius:4px;background:color-mix(in srgb,var(--c) 16%,var(--surface));min-width:0}
+.chip i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c)}
+.chip.half i{background:linear-gradient(90deg,var(--c) 50%,transparent 50%);box-shadow:inset 0 0 0 1px var(--c)}
+.chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .t{color:var(--muted)}
+.more{font-size:11px;color:var(--muted);padding-left:4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.legend b{color:var(--fg);font-weight:500}
+.legend .k{display:inline-flex;align-items:center;gap:6px}
+.legend .k i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.legend .k i.h{background:linear-gradient(90deg,var(--muted) 50%,transparent 50%);box-shadow:inset 0 0 0 1px var(--muted)}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel h2 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;background:var(--sunk);min-width:0}
+.item i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--c);margin-top:6px}
+.item .body{flex:1;min-width:0}
+.item .who{font-weight:600;margin-right:4px}
+.item .meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.item .tag{display:inline-block;font-size:11px;font-weight:600;padding:0 6px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.del{background:none;border:1px solid var(--line);border-radius:6px;font-size:12px;padding:2px 8px;color:var(--muted);flex:none}
+.del:hover,.del.arm{border-color:var(--danger);color:var(--danger)}
+.empty{color:var(--muted);font-size:13px}
+form{display:flex;flex-direction:column;gap:10px;margin:0}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:500;color:var(--muted);min-width:0}
+input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;height:38px;width:100%;min-width:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.calc{margin:0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.primary{background:var(--accent);color:var(--accent-fg);border:0;border-radius:8px;height:40px;font-weight:600;width:100%}
+.primary:disabled{opacity:.5;cursor:not-allowed}
+.msg{margin:0;font-size:12.5px;min-height:1em}
+.msg.err{color:var(--danger)}
+.msg.ok{color:var(--m2)}
+/* login */
+.gate{min-height:100vh;display:grid;place-items:center;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.card .eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--accent)}
+.card p{margin:0;color:var(--muted);font-size:13.5px}
+.card .fine{font-size:12px}
+.demo{font-size:12px;padding:8px 10px;border-radius:8px;background:var(--warnbg)}
+.linkbtn{background:none;border:0;color:var(--accent);padding:0;font-size:13px;text-decoration:underline;text-underline-offset:3px;align-self:flex-start}
+@media (max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){
+  .cell{min-height:64px;padding:4px 3px}
+  .hname{display:none}
+  .chip{padding:0 3px;gap:3px;font-size:10.5px}
+  .chip .t{display:none}
+  .dow div{padding:6px 4px;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════
-     TOPBAR
-═══════════════════════════════════ -->
-<nav class="topbar">
-  <div class="topbar-brand">ARCH<span>PROMPT</span></div>
-  <div class="topbar-nav">
-    <button class="nav-btn page-active" id="navHome" onclick="showPage('landing')">Home</button>
-    <button class="nav-btn" id="navApp"  onclick="showPage('app')">App →</button>
-    <button class="nav-btn" id="langBtn" onclick="toggleLang()">EN</button>
-    <button class="nav-btn" onclick="openModal()">⚙ <span data-ko="API 설정" data-en="API Settings">API 설정</span></button>
+<!-- ① 로그인 화면 -->
+<section class="gate" id="vLogin" hidden>
+  <div class="card">
+    <span class="eyebrow" id="loginTeam">팀 휴가 캘린더</span>
+    <h1>로그인</h1>
+    <p class="demo" id="demoNote" hidden>데모 모드입니다. Supabase 설정 전이라 아무 값이나 넣으면 예시 화면으로 들어갑니다. 저장은 되지 않습니다.</p>
+
+    <!-- 아이디 + PIN 4자리 (평소) -->
+    <form id="pwForm" novalidate>
+      <label for="loginId">아이디
+        <input id="loginId" name="username" autocomplete="username" maxlength="20" placeholder="예: 송대한" autocapitalize="off" spellcheck="false">
+      </label>
+      <label for="loginPw">PIN (숫자 4자리)
+        <input type="password" id="loginPw" name="password" autocomplete="current-password" maxlength="4" placeholder="••••">
+      </label>
+      <button type="submit" class="primary" id="pwBtn">로그인</button>
+      <p class="msg" id="pwMsg" role="status"></p>
+    </form>
+    <button type="button" class="linkbtn" id="toEmail">처음 접속이거나 PIN을 잊으셨나요?</button>
+
+    <!-- 이메일 링크 (처음 / PIN 분실) -->
+    <form id="loginForm" novalidate hidden>
+      <p>초대받은 이메일을 입력하면 로그인 링크를 보내드립니다.</p>
+      <label for="email">이메일
+        <input type="email" id="email" autocomplete="email" inputmode="email" placeholder="name@company.com">
+      </label>
+      <button type="submit" class="primary" id="loginBtn">로그인 링크 받기</button>
+      <p class="msg" id="loginMsg" role="status"></p>
+      <button type="button" class="linkbtn" id="toPw">아이디로 로그인하기</button>
+    </form>
+    <p class="fine">한 번 로그인하면 이 브라우저에서는 계속 로그인 상태가 유지됩니다.</p>
   </div>
-</nav>
+</section>
 
-<!-- ═══════════════════════════════════
-     LANDING PAGE
-═══════════════════════════════════ -->
-<div id="page-landing" class="page active">
+<!-- ② 처음 한 번: 이름 · 아이디 · PIN -->
+<section class="gate" id="vName" hidden>
+  <div class="card">
+    <span class="eyebrow" id="setupEyebrow">처음 오셨네요</span>
+    <h1 id="setupTitle">내 계정 설정</h1>
+    <p id="setupDesc">다음부터는 다른 브라우저나 기기에서도 아이디와 숫자 4자리로 바로 들어올 수 있습니다.</p>
+    <form id="nameForm" novalidate>
+      <label for="nameInput">표시 이름 (팀원들이 보는 이름)
+        <input id="nameInput" maxlength="20" placeholder="예: 송대한 책임" autocomplete="name">
+      </label>
+      <label for="idInput">아이디 (한글·영문·숫자 2~20자, 띄어쓰기 없이)
+        <input id="idInput" name="username" maxlength="20" placeholder="예: 송대한" autocomplete="username" autocapitalize="off" spellcheck="false">
+      </label>
+      <label for="pwInput"><span id="pwLabel">PIN (숫자 4자리)</span>
+        <input type="password" id="pwInput" name="new-password" autocomplete="new-password" maxlength="4" placeholder="••••">
+      </label>
+      <label for="pw2Input">PIN 확인
+        <input type="password" id="pw2Input" autocomplete="new-password" maxlength="4" placeholder="••••">
+      </label>
+      <button type="submit" class="primary" id="setupBtn">저장하고 시작하기</button>
+      <p class="msg" id="nameMsg" role="status"></p>
+      <button type="button" class="linkbtn" id="setupCancel" hidden>취소하고 캘린더로 돌아가기</button>
+    </form>
+    <p class="fine" id="setupWho"></p>
+    <button type="button" class="linkbtn" id="setupLogout">이 계정이 아니면: 로그아웃하고 다른 계정으로 로그인</button>
+  </div>
+</section>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-label">AI-Powered Architectural Tool</div>
-      <h1 class="hero-h1">Generate <em>Diagram</em><br>Prompts Instantly</h1>
-      <p class="hero-desc">
-        메스 이미지를 업로드하면 AI가 자동 분석합니다.<br>
-        Gemini, ChatGPT, Midjourney용 건축 다이어그램<br>프롬프트를 즉시 생성하세요.
-      </p>
-      <div class="hero-cta">
-        <button class="btn-hero btn-hero-primary" onclick="showPage('app')">
-          시작하기 →
-        </button>
-        <button class="btn-hero btn-hero-ghost" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">
-          기능 보기
-        </button>
-      </div>
-      <div class="hero-grid">
-        <div class="hero-cell">🏗</div>
-        <div class="hero-cell">⬆</div>
-        <div class="hero-cell">🔄</div>
-        <div class="hero-cell">🌿</div>
-        <div class="hero-cell">🔗</div>
-        <div class="hero-cell">✦</div>
-      </div>
+<!-- ③ 캘린더 -->
+<div class="app" id="vApp" hidden>
+  <header class="top">
+    <div>
+      <h1 id="appTitle">팀 휴가 캘린더</h1>
+      <p id="status" class="status">일정을 불러오는 중입니다…</p>
     </div>
-  </section>
-
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="sec-label">Core Features</div>
-    <div class="features-grid">
-      <div class="feat-card" style="animation-delay:.05s">
-        <div class="feat-icon">🖼</div>
-        <div class="feat-title">이미지 자동 분석</div>
-        <div class="feat-desc">메스 이미지를 업로드하면 Gemini Vision AI가 형태·프로그램·디자인 특징을 분석해 단계를 자동으로 채워줍니다.</div>
-        <span class="feat-tag">Gemini Vision API</span>
-      </div>
-      <div class="feat-card" style="animation-delay:.1s">
-        <div class="feat-icon">✦</div>
-        <div class="feat-title">멀티 AI 프롬프트 생성</div>
-        <div class="feat-desc">Gemini, ChatGPT/Claude, Midjourney에 최적화된 프롬프트를 각각 자동으로 생성합니다. 탭 전환으로 즉시 변환.</div>
-        <span class="feat-tag">3 AI Platforms</span>
-      </div>
-      <div class="feat-card" style="animation-delay:.15s">
-        <div class="feat-icon">🎨</div>
-        <div class="feat-title">단계 자유 설정</div>
-        <div class="feat-desc">단계 추가·삭제·순서 변경·이름 편집 모두 가능. 2단계부터 무제한까지 프로젝트에 맞게 자유롭게 구성하세요.</div>
-        <span class="feat-tag">Fully Customizable</span>
-      </div>
-      <div class="feat-card" style="animation-delay:.2s">
-        <div class="feat-icon">💾</div>
-        <div class="feat-title">프롬프트 저장 / 불러오기</div>
-        <div class="feat-desc">생성된 프롬프트를 이름 붙여 로컬에 저장하고 언제든 불러올 수 있습니다. 최대 30개, 서버 전송 없음.</div>
-        <span class="feat-tag">Local Storage</span>
-      </div>
+    <div class="nav">
+      <button class="icon" id="prev" aria-label="이전 달">‹</button>
+      <div class="month" id="monthLabel"></div>
+      <button class="icon" id="next" aria-label="다음 달">›</button>
+      <button class="ghost" id="todayBtn">오늘</button>
     </div>
-  </section>
+  </header>
 
-  <!-- How it works -->
-  <section class="flow">
-    <div class="sec-label">How It Works</div>
-    <div class="flow-steps">
-      <div class="flow-step">
-        <div class="flow-num">01</div>
-        <div class="flow-step-t">이미지 업로드</div>
-        <div class="flow-step-d">메스 스케치나 3D 이미지를 업로드</div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">02</div>
-        <div class="flow-step-t">AI 자동 분석</div>
-        <div class="flow-step-d">Gemini가 형태와 개념을 분석해 단계 자동 채우기</div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">03</div>
-        <div class="flow-step-t">스타일 선택</div>
-        <div class="flow-step-d">다이어그램 스타일과 타입 선택</div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">04</div>
-        <div class="flow-step-t">프롬프트 생성</div>
-        <div class="flow-step-d">원하는 AI 플랫폼용 프롬프트 즉시 생성</div>
-      </div>
-    </div>
-  </section>
+  <div class="banner" id="installTip" hidden>
+    <p id="installText"></p>
+    <button type="button" id="installClose">닫기</button>
+  </div>
 
-  <!-- Style Showcase -->
-  <section class="styles-strip">
-    <div class="styles-inner">
-      <div class="sec-label">Diagram Styles</div>
-      <div class="styles-grid">
-        <div class="style-card">
-          <div class="style-preview sp-green">🟩</div>
-          <div class="style-info">
-            <div class="style-name">Green Minimal</div>
-            <div class="style-note">Sage green · Isometric · Minimal</div>
+  <div class="layout">
+    <section class="cal" aria-label="월간 달력">
+      <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+      <div class="grid" id="grid"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2 id="dayTitle"></h2>
+        <ul id="dayList"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>내 휴가 등록</h2>
+        <form id="form" novalidate>
+          <label for="fType">구분
+            <select id="fType">
+              <option>연차</option><option>오전반차</option><option>오후반차</option>
+              <option>경조휴가</option><option>병가</option><option>교육·출장</option><option>기타</option>
+            </select>
+          </label>
+          <div class="row">
+            <label for="fStart">시작일<input type="date" id="fStart"></label>
+            <label for="fEnd">종료일<input type="date" id="fEnd"></label>
           </div>
+          <label for="fMemo">메모 (선택)
+            <input id="fMemo" maxlength="60" placeholder="예: 가족여행 · 급한 건은 카톡" autocomplete="off">
+          </label>
+          <p class="calc" id="fCalc"></p>
+          <button type="submit" class="primary" id="fSubmit">등록하기</button>
+          <p class="msg" id="fMsg" role="status"></p>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>내 등록 내역<small id="myTotal"></small></h2>
+        <ul id="myList"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="userbar"><span><b id="meName"></b> 님으로 로그인됨</span></div>
+        <div class="nav">
+          <button class="ghost" id="renameBtn" type="button">이름·PIN 변경</button>
+          <button class="ghost" id="logoutBtn" type="button">로그아웃</button>
         </div>
-        <div class="style-card">
-          <div class="style-preview sp-blue">🔷</div>
-          <div class="style-info">
-            <div class="style-name">Grey Topographic</div>
-            <div class="style-note">Slate blue · Topo lines · Urban</div>
-          </div>
-        </div>
-        <div class="style-card">
-          <div class="style-preview sp-white">⬜</div>
-          <div class="style-info">
-            <div class="style-name">White Clean</div>
-            <div class="style-note">Pure white · Ultra minimal · Crisp</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer class="land-footer">
-    <div class="land-footer-brand">ARCHPROMPT</div>
-    <div class="land-footer-sub">AI Diagram Prompt Generator · For Architects</div>
-  </footer>
-
-</div><!-- /landing -->
-
-<!-- ═══════════════════════════════════
-     APP PAGE
-═══════════════════════════════════ -->
-<div id="page-app" class="page">
-<div class="app-wrap">
-
-  <div class="app-header">
-    <div class="app-header-sub" data-ko="프롬프트 생성기" data-en="Prompt Generator">프롬프트 생성기</div>
-    <h2>Design <em>Diagram</em> Prompts</h2>
-  </div>
-
-  <!-- STYLE + TYPE -->
-  <div class="section grid-2">
-    <div class="card" style="animation-delay:.05s">
-      <div class="card-label" data-ko="다이어그램 스타일" data-en="Diagram Style">다이어그램 스타일</div>
-      <div class="radio-group">
-        <label class="radio-item"><input type="radio" name="style" value="green_minimal" checked><span class="radio-dot"></span><span class="radio-label">🟢 <span data-ko="그린 미니멀 (Ref.1)" data-en="Green Minimal (Ref.1)">그린 미니멀 (Ref.1)</span></span></label>
-        <label class="radio-item"><input type="radio" name="style" value="grey_topo"><span class="radio-dot"></span><span class="radio-label">🔵 <span data-ko="그레이 지형도 (Ref.2)" data-en="Grey Topographic (Ref.2)">그레이 지형도 (Ref.2)</span></span></label>
-        <label class="radio-item"><input type="radio" name="style" value="white_clean"><span class="radio-dot"></span><span class="radio-label">⬜ <span data-ko="화이트 클린" data-en="White Clean">화이트 클린</span></span></label>
-      </div>
-    </div>
-    <div class="card" style="animation-delay:.1s">
-      <div class="card-label" data-ko="다이어그램 타입" data-en="Diagram Type">다이어그램 타입</div>
-      <div class="radio-group">
-        <label class="radio-item"><input type="radio" name="dtype" value="isometric" checked><span class="radio-dot"></span><span class="radio-label" data-ko="등각 투영 (Isometric)" data-en="Isometric (45°)">등각 투영 (Isometric)</span></label>
-        <label class="radio-item"><input type="radio" name="dtype" value="birdseye"><span class="radio-dot"></span><span class="radio-label" data-ko="조감도 (Bird's Eye)" data-en="Bird's Eye View">조감도 (Bird's Eye)</span></label>
-        <label class="radio-item"><input type="radio" name="dtype" value="exploded"><span class="radio-dot"></span><span class="radio-label" data-ko="분해도 (Exploded)" data-en="Exploded Axonometric">분해도 (Exploded)</span></label>
-        <label class="radio-item"><input type="radio" name="dtype" value="sequence"><span class="radio-dot"></span><span class="radio-label" data-ko="시퀀스 다이어그램" data-en="Step-by-step Sequence">시퀀스 다이어그램</span></label>
-      </div>
-    </div>
-  </div>
-
-  <!-- UPLOAD + STEPS -->
-  <div class="section grid-2">
-    <div class="card" style="animation-delay:.15s">
-      <div class="card-label" data-ko="메스 이미지 분석" data-en="Massing Image Analysis">메스 이미지 분석</div>
-      <div class="upload-zone" id="uploadZone">
-        <input type="file" accept="image/*" onchange="handleFileInput(event)" id="fileInput">
-        <div class="upload-icon">⬆</div>
-        <div class="upload-title" data-ko="클릭 또는 드래그해서 업로드" data-en="Click or drag to upload">클릭 또는 드래그해서 업로드</div>
-        <div class="upload-sub">JPG · PNG · WEBP</div>
-      </div>
-      <div class="preview-wrap" id="previewWrap">
-        <img id="previewImg" src="" alt="preview">
-        <div class="preview-overlay">
-          <button class="preview-change-btn" onclick="document.getElementById('fileInput2').click()" data-ko="이미지 변경" data-en="Change Image">이미지 변경</button>
-          <input type="file" id="fileInput2" accept="image/*" style="display:none" onchange="handleFileInput(event)">
-        </div>
-      </div>
-      <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()"
-        data-ko="✦ AI로 이미지 분석 → 단계 자동 채우기"
-        data-en="✦ Analyze with AI → Auto-fill Steps">
-        ✦ AI로 이미지 분석 → 단계 자동 채우기
-      </button>
-      <div class="analysis-box" id="analysisResult">
-        <div class="analysis-box-label" data-ko="AI 분석 결과" data-en="AI Analysis Result">AI 분석 결과</div>
-        <p id="analysisText"></p>
-      </div>
-    </div>
-
-    <div class="card" style="animation-delay:.2s">
-      <div class="steps-header">
-        <div class="card-label" style="margin:0" data-ko="디자인 프로세스 단계" data-en="Design Process Steps">
-          디자인 프로세스 단계&nbsp;&nbsp;<span class="badge" id="stepBadge">5단계</span>
-        </div>
-        <button class="add-step-btn" onclick="addStep()" data-ko="+ 단계 추가" data-en="+ Add Step">+ 단계 추가</button>
-      </div>
-      <div class="steps-list" id="stepsList"></div>
-      <div class="notes-area">
-        <div class="notes-label" data-ko="추가 메모" data-en="Extra Notes">추가 메모</div>
-        <textarea id="extraNotes" rows="2"
-          placeholder="기타 키워드, 재료, 컨셉 등..."
-          data-ko="기타 키워드, 재료, 컨셉 등..."
-          data-en="Keywords, materials, concept notes..."></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- OUTPUT -->
-  <div class="section">
-    <div class="card output-card" style="animation-delay:.25s">
-      <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('gemini',this)">Gemini</button>
-        <button class="tab-btn" onclick="switchTab('chatgpt',this)">ChatGPT / Claude</button>
-        <button class="tab-btn" onclick="switchTab('midjourney',this)">Midjourney</button>
-        <button class="tab-btn" onclick="switchTab('imageGen',this)" data-ko="이미지 직접 생성" data-en="Direct Image Gen">이미지 직접 생성</button>
-      </div>
-      <div class="tab-body">
-        <button class="gen-btn" id="genBtn" onclick="handleGenerate()"
-          data-ko="✦ 프롬프트 생성" data-en="✦ Generate Prompt">✦ 프롬프트 생성</button>
-        <div class="prompt-out" id="promptOut"></div>
-        <div class="img-gen-wrap" id="imgGenWrap">
-          <div class="img-gen-label">
-            <span data-ko="생성된 이미지" data-en="Generated Image">생성된 이미지</span>
-            <button class="act-btn" onclick="downloadImage()" data-ko="↓ 다운로드" data-en="↓ Download">↓ 다운로드</button>
-          </div>
-          <img id="imgGenResult" src="" alt="generated diagram">
-        </div>
-        <div class="action-row" id="actionRow">
-          <button class="act-btn act-copy" id="copyBtn" onclick="copyPrompt()" data-ko="복사" data-en="Copy">복사</button>
-          <button class="act-btn" onclick="savePrompt()" data-ko="저장" data-en="Save">저장</button>
-          <button class="act-btn" onclick="clearOutput()" data-ko="지우기" data-en="Clear">지우기</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SAVED -->
-  <div class="section">
-    <div class="card" style="animation-delay:.3s">
-      <div class="card-label" data-ko="저장된 프롬프트" data-en="Saved Prompts">저장된 프롬프트</div>
-      <div class="saved-list" id="savedList"></div>
-    </div>
-  </div>
-
-  <!-- TIPS -->
-  <div class="grid-3">
-    <div class="tip-card" style="animation-delay:.32s">
-      <div class="tip-icon">🌐</div>
-      <div class="tip-t" data-ko="Gemini 접속" data-en="Access Gemini">Gemini 접속</div>
-      <div class="tip-d" data-ko="gemini.google.com → 'Generate an image:' 뒤에 프롬프트 붙여넣기" data-en="gemini.google.com → paste after 'Generate an image:'">gemini.google.com → 'Generate an image:' 뒤에 프롬프트 붙여넣기</div>
-    </div>
-    <div class="tip-card" style="animation-delay:.36s">
-      <div class="tip-icon">🔑</div>
-      <div class="tip-t" data-ko="API Key 발급" data-en="Get API Key">API Key 발급</div>
-      <div class="tip-d" data-ko="aistudio.google.com → Get API Key → Create API Key (무료)" data-en="aistudio.google.com → Get API Key → Create (free)">aistudio.google.com → Get API Key → Create API Key (무료)</div>
-    </div>
-    <div class="tip-card" style="animation-delay:.4s">
-      <div class="tip-icon">🎛</div>
-      <div class="tip-t" data-ko="결과 조정" data-en="Refine Result">결과 조정</div>
-      <div class="tip-d" data-ko="사실적이면 'diagram only, not realistic' 추가 입력" data-en="If too realistic, add 'diagram style only, not realistic'">사실적이면 'diagram only, not realistic' 추가 입력</div>
-    </div>
-  </div>
-
-</div>
-</div><!-- /app -->
-
-<!-- ═══════════════════════════════════
-     API KEY MODAL
-═══════════════════════════════════ -->
-<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <div class="modal-title" data-ko="⚙ API 설정" data-en="⚙ API Settings">⚙ API 설정</div>
-    <label data-ko="Gemini API Key" data-en="Gemini API Key">Gemini API Key</label>
-    <input type="text" id="apiKeyInput" placeholder="AIza..." autocomplete="off" spellcheck="false">
-    <p class="modal-hint" data-ko="API Key는 이 기기에만 저장됩니다 — 서버로 전송되지 않습니다.<br><a href='https://aistudio.google.com/app/apikey' target='_blank'>aistudio.google.com</a>에서 무료로 발급하세요." data-en="Stored locally only — never sent to any server.<br>Get it free at <a href='https://aistudio.google.com/app/apikey' target='_blank'>aistudio.google.com</a>.">
-      API Key는 이 기기에만 저장됩니다 — 서버로 전송되지 않습니다.<br>
-      <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a>에서 무료로 발급하세요.
-    </p>
-    <div class="modal-footer">
-      <button class="modal-cancel" onclick="closeModal()" data-ko="취소" data-en="Cancel">취소</button>
-      <button class="modal-save"   onclick="saveApiKey()" data-ko="저장" data-en="Save">저장</button>
-    </div>
+      </section>
+    </aside>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
-<!-- ═══════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════ -->
 <script>
-/* ── PROMPT TEMPLATES ── */
-const STYLE_DESC = {
-  green_minimal: `soft sage green massing (#8aab7e), light warm gray background (#f0f0ec), clean isometric 45-degree view, minimalist illustration style, small stylized human silhouettes for scale, lollipop-style tree illustrations, subtle drop shadows, flat matte surfaces, no textures, thin dashed site boundary lines`,
-  grey_topo:     `cool slate blue massing (#6b8cae), white background with detailed topographic contour lines in thin light gray, aerial isometric 30-degree view, precise architectural linework, surrounding urban context buildings as fine outlines only, dark navy bridge elements (#2d4a6e), no human figures`,
-  white_clean:   `pure white massing with thin gray outlines, ultra-clean white background, crisp isometric 45-degree view, no textures, high-contrast soft drop shadows, ultra-minimal diagram illustration style`,
-};
-const TYPE_DESC = {
-  isometric: 'isometric 45-degree consistent axonometric view throughout all panels',
-  birdseye:  "aerial bird's-eye perspective from directly above",
-  exploded:  'exploded axonometric with separated floor plates floating vertically apart',
-  sequence:  'step-by-step sequential massing transformation — each panel shows one design operation',
-};
-
-function buildGeminiPrompt(style, dtype, steps, notes) {
-  const panels = steps.map((s,i)=>`Panel ${i+1} — ${s.label.toUpperCase()}${s.value?'\n'+s.value:''}`).join('\n\n');
-  return `Generate an image:\n\nPlease generate a high-quality architectural concept diagram board in a professional architecture school portfolio style.\n\nOVERALL LAYOUT:\nCreate a single image divided into ${steps.length} panels in a grid layout. Each panel contains one architectural massing diagram using ${TYPE_DESC[dtype]}.\n\nVISUAL STYLE:\n${STYLE_DESC[style]}\n\nTYPOGRAPHY PER PANEL:\n- Bold uppercase title at bottom of each panel\n- 2–3 lines of small descriptive caption text beneath title\n- Clean minimal editorial typography\n\nPANEL SEQUENCE:\n${panels}${notes?'\n\nADDITIONAL NOTES:\n'+notes:''}\n\nOUTPUT: Clean professional architectural diagram board, illustration style ONLY — NOT photorealistic. Consistent viewpoint and scale across all panels.`;
-}
-function buildChatGPTPrompt(style, dtype, steps, notes) {
-  const seq = steps.map((s,i)=>`${i+1}. ${s.label.toUpperCase()}${s.value?'\n   '+s.value:''}`).join('\n\n');
-  return `Create a professional architectural concept diagram presentation board (architecture school portfolio style).\n\n=== VISUAL STYLE ===\n${STYLE_DESC[style]}\nDiagram type: ${TYPE_DESC[dtype]}\n\n=== LAYOUT ===\n${steps.length} panels in a grid. Each: diagram (70%) + bold uppercase title + caption (30%). Consistent scale & viewpoint.\n\n=== DIAGRAM SEQUENCE ===\n${seq}${notes?'\n\n=== ADDITIONAL NOTES ===\n'+notes:''}\n\n=== ANNOTATIONS ===\nCurved arrows for rotation · Straight arrows for direction · Dotted lines for boundaries · Compass labels where relevant`;
-}
-function buildMidjourneyPrompt(style, dtype, steps, notes) {
-  const sum = steps.map((s,i)=>`Step${i+1} ${s.label}${s.value?': '+s.value:''}`).join('; ');
-  return `Architectural concept diagram sheet, ${steps.length}-step design process, ${TYPE_DESC[dtype]}, ${STYLE_DESC[style]}. Design sequence: [${sum}]. ${notes?notes+'. ':''}Each panel: bold uppercase title + caption. Professional presentation board, grid layout, editorial typography. --ar 1:1 --style raw --v 6.1 --q 2`;
-}
-
-/* ── STATE ── */
-let lang = localStorage.getItem('ap_lang') || 'ko';
-let activeTab = 'gemini';
-let uploadedB64 = null, uploadedMime = null;
-let nextId = 6;
-let steps = [
-  { id:1, label:'기본 메스 설정',  value:'', ph:'예: 두 개의 직사각형 타워가 약간 회전 배치됨' },
-  { id:2, label:'프로그램/기능',   value:'', ph:'예: 주거, 상업, 엔터테인먼트, 주차장' },
-  { id:3, label:'디자인 조작',     value:'', ph:'예: 층별 분절, 회전, 브릿지 연결' },
-  { id:4, label:'환경/컨텍스트',  value:'', ph:'예: 숲과 바다 조망, 자연 채광' },
-  { id:5, label:'최종 개념',       value:'', ph:'예: 입면 다양성을 위한 층판 형태 조작' },
-];
-
-/* ── PAGE NAV ── */
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.getElementById('navHome').classList.toggle('page-active', id === 'landing');
-  document.getElementById('navApp') .classList.toggle('page-active', id === 'app');
-  window.scrollTo(0, 0);
-}
-
-/* ── LANGUAGE ── */
-function applyLang() {
-  document.querySelectorAll('[data-ko]').forEach(el => {
-    const v = el.getAttribute('data-' + lang); if (!v) return;
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = v;
-    else el.innerHTML = v;
-  });
-  document.getElementById('langBtn').textContent = lang === 'ko' ? 'EN' : '한';
-}
-function toggleLang() {
-  lang = lang === 'ko' ? 'en' : 'ko';
-  localStorage.setItem('ap_lang', lang);
-  applyLang(); renderSteps(); renderSaved();
-}
-
-/* ── HELPERS ── */
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function getStyle() { return document.querySelector('input[name="style"]:checked')?.value || 'green_minimal'; }
-function getDtype() { return document.querySelector('input[name="dtype"]:checked')?.value || 'isometric'; }
-function getNotes() { return (document.getElementById('extraNotes')?.value || '').trim(); }
-
-/* ── STEPS ── */
-function renderSteps() {
-  const list = document.getElementById('stepsList'); if (!list) return;
-  list.innerHTML = '';
-  steps.forEach((s, i) => {
-    const row = document.createElement('div');
-    row.className = 'step-row';
-    row.style.animationDelay = `${i * 0.04}s`;
-    row.innerHTML = `
-      <div class="step-num">${i+1}</div>
-      <input type="text" class="step-label-input"
-        placeholder="${lang==='ko'?'단계 이름':'Step name'}"
-        value="${esc(s.label)}" oninput="steps[${i}].label=this.value">
-      <input type="text" class="step-val-input"
-        placeholder="${esc(s.ph)}"
-        value="${esc(s.value)}" oninput="steps[${i}].value=this.value">
-      <div class="step-controls">
-        <button class="ctrl-btn" onclick="moveStep(${i},-1)" ${i===0?'disabled':''}>↑</button>
-        <button class="ctrl-btn" onclick="moveStep(${i},1)" ${i===steps.length-1?'disabled':''}>↓</button>
-        <button class="ctrl-btn del" onclick="removeStep(${i})" ${steps.length<=2?'disabled':''}>✕</button>
-      </div>`;
-    list.appendChild(row);
-  });
-  const b = document.getElementById('stepBadge');
-  if (b) b.textContent = steps.length + (lang==='ko'?'단계':' steps');
-}
-function addStep() {
-  steps.push({ id:nextId++, label:lang==='ko'?`단계 ${steps.length+1}`:`Step ${steps.length+1}`, value:'', ph:lang==='ko'?'이 단계의 내용 입력':'Describe this step' });
-  renderSteps();
-}
-function removeStep(i) { if(steps.length>2){ steps.splice(i,1); renderSteps(); } }
-function moveStep(i,d) { const t=i+d; if(t<0||t>=steps.length)return; [steps[i],steps[t]]=[steps[t],steps[i]]; renderSteps(); }
-
-/* ── UPLOAD ── */
-function handleFileInput(e) { const f=e.target.files[0]; if(f) processImage(f); }
-function processImage(file) {
-  uploadedMime = file.type;
-  const r = new FileReader();
-  r.onload = ev => {
-    uploadedB64 = ev.target.result.split(',')[1];
-    document.getElementById('uploadZone').style.display = 'none';
-    const pw = document.getElementById('previewWrap'); pw.style.display = 'block';
-    document.getElementById('previewImg').src = ev.target.result;
-    document.getElementById('analyzeBtn').style.display = 'block';
+(() => {
+  // ---------------- 공휴일 (참고용, 대체공휴일 포함) ----------------
+  const HOLIDAYS = {
+    "2026-01-01":"신정","2026-02-16":"설날 연휴","2026-02-17":"설날","2026-02-18":"설날 연휴","2026-03-01":"삼일절","2026-03-02":"대체공휴일",
+    "2026-05-05":"어린이날","2026-05-24":"부처님오신날","2026-05-25":"대체공휴일","2026-06-03":"지방선거","2026-06-06":"현충일",
+    "2026-08-15":"광복절","2026-08-17":"대체공휴일","2026-09-24":"추석 연휴","2026-09-25":"추석","2026-09-26":"추석 연휴",
+    "2026-10-03":"개천절","2026-10-05":"대체공휴일","2026-10-09":"한글날","2026-12-25":"성탄절",
+    "2027-01-01":"신정","2027-02-06":"설날 연휴","2027-02-07":"설날","2027-02-08":"설날 연휴","2027-02-09":"대체공휴일","2027-03-01":"삼일절",
+    "2027-05-05":"어린이날","2027-05-13":"부처님오신날","2027-06-06":"현충일","2027-08-15":"광복절","2027-08-16":"대체공휴일",
+    "2027-09-14":"추석 연휴","2027-09-15":"추석","2027-09-16":"추석 연휴","2027-10-03":"개천절","2027-10-04":"대체공휴일",
+    "2027-10-09":"한글날","2027-10-11":"대체공휴일","2027-12-25":"성탄절","2027-12-27":"대체공휴일"
   };
-  r.readAsDataURL(file);
-}
-(function initDrop() {
-  const z = document.getElementById('uploadZone'); if (!z) return;
-  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag'); });
-  z.addEventListener('dragleave', () => z.classList.remove('drag'));
-  z.addEventListener('drop', e => {
-    e.preventDefault(); z.classList.remove('drag');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) processImage(f);
+  const HALF = new Set(["오전반차","오후반차"]);
+  const COUNTED = new Set(["연차","오전반차","오후반차"]);
+  const CFG = window.TEAM_LEAVE_CONFIG || {};
+  const DEMO = !window.supabase || !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(CFG.SUPABASE_URL||"") || /YOUR-/.test(CFG.SUPABASE_ANON_KEY||"YOUR-");
+
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,"0");
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const parse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+  const DOW = ["일","월","화","수","목","금","토"];
+  const fmt = s => { const d=parse(s); return `${d.getMonth()+1}/${d.getDate()}(${DOW[d.getDay()]})`; };
+  const isOff = s => { const g=parse(s).getDay(); return g===0||g===6||!!HOLIDAYS[s]; };
+  function workDays(start,end,type){
+    if (HALF.has(type)) return isOff(start)?0:0.5;
+    let n=0; for(let d=parse(start); ymd(d)<=end; d.setDate(d.getDate()+1)) if(!isOff(ymd(d))) n++;
+    return n;
+  }
+  function colorIdx(id){ let h=0; for(const c of String(id)) h=(h*31+c.charCodeAt(0))>>>0; return h%8; }
+  const store = { get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+
+  function show(view){ for(const v of ["vLogin","vName","vApp"]) $(v).hidden = v!==view; }
+  function msg(el,t,kind){ el.textContent=t||""; el.className="msg"+(kind?" "+kind:""); }
+
+  // =====================================================================
+  //  데이터 계층: Supabase (실제) / Demo (설정 전 미리보기)
+  // =====================================================================
+  function makeSupabase(){
+    const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {
+      auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"implicit", storageKey:"team-leave-auth" }
+    });
+    return {
+      async session(){ const {data}=await sb.auth.getSession(); return data.session?.user||null; },
+      onAuth(cb){ sb.auth.onAuthStateChange((ev,s)=>cb(ev,s?.user||null)); },
+      async sendLink(email){
+        const {error}=await sb.auth.signInWithOtp({email, options:{shouldCreateUser:false, emailRedirectTo: location.origin+location.pathname}});
+        if(!error) return {ok:true};
+        const m=(error.message||"").toLowerCase();
+        if(error.status===429||m.includes("rate")) return {ok:false, reason:"rate"};
+        if(m.includes("signup")||m.includes("not allowed")||m.includes("not found")||error.status===422||error.status===400) return {ok:false, reason:"notInvited"};
+        return {ok:false, reason:"other", detail:error.message};
+      },
+      async signInPw(loginId,pw){
+        const {data:email,error:e1}=await sb.rpc("login_email",{p_login:loginId});
+        if(e1) return {ok:false, reason: e1.code==="PGRST202"?"setup":"other"};
+        if(!email) return {ok:false, reason:"bad"};
+        const {error}=await sb.auth.signInWithPassword({email,password:pw});
+        if(!error) return {ok:true};
+        if(error.status===429||(error.message||"").toLowerCase().includes("rate")) return {ok:false, reason:"rate"};
+        return {ok:false, reason:"bad"};
+      },
+      async signOut(){ await sb.auth.signOut(); },
+      async freshUser(){ const {data,error}=await sb.auth.getUser(); if(error||!data?.user) return null; return data.user; },
+      async myProfile(uid){ const {data}=await sb.from("members").select("display_name,login_id").eq("id",uid).maybeSingle(); return data||{}; },
+      async saveProfile(uid,name,loginId){
+        const {error}=await sb.from("members").upsert({id:uid, display_name:name, login_id:loginId});
+        if(error){ if(error.code==="23505") throw {code:"dupId"}; throw error; }
+      },
+      async setPassword(pw){
+        const {data,error}=await sb.auth.updateUser({password:pw, data:{pin_set:true}});
+        if(error){ const m=(error.message||"").toLowerCase(); throw {code: m.includes("weak")||m.includes("at least")||m.includes("characters")?"weak": m.includes("different")?"same":"other", detail:error.message}; }
+        return data.user;
+      },
+      async isAdmin(){ const {data,error}=await sb.rpc("is_admin"); return !error && data===true; },
+      async load(){
+        const since = `${new Date().getFullYear()-1}-01-01`;
+        const [m,l]=await Promise.all([
+          sb.from("members").select("id,display_name"),
+          sb.from("leaves").select("id,user_id,type,start_date,end_date,memo").gte("end_date",since).order("start_date")
+        ]);
+        if(m.error) throw m.error; if(l.error) throw l.error;
+        return {members:m.data, leaves:l.data};
+      },
+      async add(row){ const {error}=await sb.from("leaves").insert(row); if(error) throw error; },
+      async del(id){ const {data,error}=await sb.from("leaves").delete().eq("id",id).select("id"); if(error) throw error; return (data||[]).length>0; },
+      live(cb){
+        let t; const fire=()=>{ clearTimeout(t); t=setTimeout(cb,250); };
+        sb.channel("team-leave")
+          .on("postgres_changes",{event:"*",schema:"public",table:"leaves"},fire)
+          .on("postgres_changes",{event:"*",schema:"public",table:"members"},fire)
+          .subscribe();
+        document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") fire(); });
+      }
+    };
+  }
+
+  function makeDemo(){
+    const t=new Date(); const y=t.getFullYear(), m=t.getMonth();
+    const d=(day)=>ymd(new Date(y,m,day));
+    const members=[{id:"demo-me",display_name:""},{id:"demo-a",display_name:"(예시) 김설계"},{id:"demo-b",display_name:"(예시) 이구조"},{id:"demo-c",display_name:"(예시) 박인허"}];
+    let leaves=[
+      {id:"x1",user_id:"demo-a",type:"연차",start_date:d(6),end_date:d(8),memo:"가족여행"},
+      {id:"x2",user_id:"demo-b",type:"오후반차",start_date:d(12),end_date:d(12),memo:""},
+      {id:"x3",user_id:"demo-c",type:"교육·출장",start_date:d(17),end_date:d(18),memo:"인허가 협의 출장"},
+      {id:"x4",user_id:"demo-a",type:"오전반차",start_date:d(17),end_date:d(17),memo:""},
+      {id:"x5",user_id:"demo-b",type:"연차",start_date:d(24),end_date:d(26),memo:""}
+    ];
+    let user=null, cb=null, demoPw=null;
+    members[1].login_id="김설계";
+    return {
+      async session(){ return user; },
+      onAuth(f){ cb=f; },
+      async sendLink(email){ user={id:"demo-me",email}; setTimeout(()=>cb&&cb("SIGNED_IN",user),300); return {ok:true, demo:true}; },
+      async signInPw(loginId,pw){ if(members[0].login_id && (loginId!==members[0].login_id||pw!==demoPw)) return {ok:false,reason:"bad"}; user={id:"demo-me",user_metadata:{pin_set:!!members[0].login_id}}; setTimeout(()=>cb&&cb("SIGNED_IN",user),200); return {ok:true}; },
+      async signOut(){ user=null; cb&&cb("SIGNED_OUT",null); },
+      async freshUser(){ return user; },
+      async myProfile(){ return {display_name:members[0].display_name, login_id:members[0].login_id}; },
+      async saveProfile(uid,name,loginId){ if(members.some(m=>m.id!=="demo-me"&&m.login_id&&m.login_id.toLowerCase()===loginId.toLowerCase())) throw {code:"dupId"}; members[0].display_name=name; members[0].login_id=loginId; },
+      async setPassword(pw){ demoPw=pw; user={...user,user_metadata:{pin_set:true}}; return user; },
+      async isAdmin(){ return false; },
+      async load(){ return {members:members.map(x=>({...x})), leaves:leaves.map(x=>({...x}))}; },
+      async add(row){ leaves.push({id:"n"+Date.now(), user_id:"demo-me", memo:"", ...row}); },
+      async del(id){ const r=leaves.find(x=>x.id===id); if(!r||r.user_id!=="demo-me") return false; leaves=leaves.filter(x=>x.id!==id); return true; },
+      live(){}
+    };
+  }
+
+  const api = DEMO ? makeDemo() : makeSupabase();
+
+  // =====================================================================
+  //  상태 & 렌더링
+  // =====================================================================
+  const today = ymd(new Date());
+  let view=new Date(); view.setDate(1);
+  let selected=today, me=null, myName="", admin=false, members={}, leaves=[], started=false;
+
+  function entries(){
+    return leaves.map(r=>({id:r.id, uid:r.user_id, type:r.type, start:r.start_date, end:r.end_date, memo:r.memo||"",
+      who:(members[r.user_id]||"이름 미설정"), c:`var(--m${colorIdx(r.user_id)})`}))
+      .sort((a,b)=>a.start<b.start?-1:a.start>b.start?1:a.who.localeCompare(b.who,"ko"));
+  }
+  const onDay=(list,s)=>list.filter(e=>e.start<=s&&s<=e.end&&(!isOff(s)||e.start===e.end));
+
+  function render(){
+    const list=entries();
+    const y=view.getFullYear(), m=view.getMonth();
+    $("monthLabel").textContent=`${y}년 ${m+1}월`;
+    const first=new Date(y,m,1), start=new Date(first); start.setDate(1-first.getDay());
+    const weeks=Math.ceil((first.getDay()+new Date(y,m+1,0).getDate())/7);
+    const narrow=matchMedia("(max-width:560px)").matches;
+    const grid=$("grid"); grid.replaceChildren();
+    for(let i=0;i<weeks*7;i++){
+      const d=new Date(start); d.setDate(start.getDate()+i); const s=ymd(d);
+      const cell=document.createElement("button"); cell.type="button"; cell.className="cell";
+      if(d.getMonth()!==m) cell.classList.add("out");
+      if(d.getDay()===0) cell.classList.add("sun"); if(d.getDay()===6) cell.classList.add("sat");
+      if(HOLIDAYS[s]) cell.classList.add("hol"); if(s===today) cell.classList.add("today"); if(s===selected) cell.classList.add("sel");
+      const head=document.createElement("div"); head.className="dhead";
+      const num=document.createElement("span"); num.className="dnum"; num.textContent=d.getDate(); head.append(num);
+      if(HOLIDAYS[s]){ const h=document.createElement("span"); h.className="hname"; h.textContent=HOLIDAYS[s]; head.append(h); }
+      cell.append(head);
+      const es=onDay(list,s), max=narrow?2:3;
+      for(const e of es.slice(0,max)){
+        const c=document.createElement("div"); c.className="chip"+(HALF.has(e.type)?" half":""); c.style.setProperty("--c",e.c);
+        const dot=document.createElement("i"); const w=document.createElement("span"); w.textContent=e.who;
+        const t=document.createElement("span"); t.className="t"; t.textContent=e.type;
+        c.append(dot,w,t); cell.append(c);
+      }
+      if(es.length>max){ const mo=document.createElement("div"); mo.className="more"; mo.textContent=`+${es.length-max}명`; cell.append(mo); }
+      cell.setAttribute("aria-label",`${d.getMonth()+1}월 ${d.getDate()}일${HOLIDAYS[s]?" "+HOLIDAYS[s]:""}, 휴가 ${es.length}건`);
+      cell.addEventListener("click",()=>{ selected=s; $("fStart").value=s; if(!$("fEnd").value||$("fEnd").value<s) $("fEnd").value=s; calc(); render(); });
+      grid.append(cell);
+    }
+    renderLegend(list,y,m); renderDay(list); renderMine(list);
+  }
+
+  function renderLegend(list,y,m){
+    const lg=$("legend"); lg.replaceChildren();
+    const mk=`${y}-${pad(m+1)}`, cnt={};
+    for(const e of list){ let n=0; for(let d=parse(e.start); ymd(d)<=e.end; d.setDate(d.getDate()+1)){ const s=ymd(d); if(s.startsWith(mk)&&!isOff(s)) n+=HALF.has(e.type)?0.5:1; } if(n) cnt[e.uid]=(cnt[e.uid]||0)+n; }
+    const ids=Object.keys(members).filter(id=>members[id]).sort((a,b)=>members[a].localeCompare(members[b],"ko"));
+    if(!ids.length){ lg.textContent="팀원이 처음 로그인하면 이름과 색상이 여기에 표시됩니다."; return; }
+    for(const id of ids){
+      const k=document.createElement("span"); k.className="k"; k.style.setProperty("--c",`var(--m${colorIdx(id)})`);
+      const i=document.createElement("i"); const b=document.createElement("b"); b.textContent=members[id];
+      k.append(i,b,document.createTextNode(cnt[id]?` ${cnt[id]}일`:" -")); lg.append(k);
+    }
+    const h=document.createElement("span"); h.className="k"; const hi=document.createElement("i"); hi.className="h"; h.append(hi,document.createTextNode("반차")); lg.append(h);
+  }
+
+  function item(e,{showWho=true,deletable=false}={}){
+    const li=document.createElement("li"); li.className="item"; li.style.setProperty("--c",e.c);
+    const dot=document.createElement("i"); const body=document.createElement("div"); body.className="body";
+    const top=document.createElement("div");
+    if(showWho){ const w=document.createElement("span"); w.className="who"; w.textContent=e.who; top.append(w); }
+    const tg=document.createElement("span"); tg.className="tag"; tg.textContent=e.type; top.append(tg);
+    const meta=document.createElement("div"); meta.className="meta";
+    meta.textContent=(e.start===e.end?fmt(e.start):`${fmt(e.start)} ~ ${fmt(e.end)}`)+` · ${workDays(e.start,e.end,e.type)}일`+(e.memo?` · ${e.memo}`:"");
+    body.append(top,meta); li.append(dot,body);
+    if(deletable){
+      const del=document.createElement("button"); del.type="button"; del.className="del"; del.textContent="삭제";
+      del.addEventListener("click",async()=>{
+        if(!del.classList.contains("arm")){ del.classList.add("arm"); del.textContent="삭제 확인"; setTimeout(()=>{ del.classList.remove("arm"); del.textContent="삭제"; },3000); return; }
+        del.disabled=true;
+        try{ const ok=await api.del(e.id); msg($("fMsg"), ok?"삭제했습니다.":"이 일정을 삭제할 권한이 없습니다.", ok?"ok":"err"); await refresh(); }
+        catch{ msg($("fMsg"),"삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.","err"); del.disabled=false; }
+      });
+      li.append(del);
+    }
+    return li;
+  }
+
+  function renderDay(list){
+    const d=parse(selected);
+    $("dayTitle").textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${DOW[d.getDay()]})${HOLIDAYS[selected]?" · "+HOLIDAYS[selected]:""} 부재자`;
+    const ul=$("dayList"); ul.replaceChildren();
+    const es=onDay(list,selected);
+    if(!es.length){ const li=document.createElement("li"); li.className="empty"; li.textContent=isOff(selected)?"휴무일입니다.":"이 날은 모두 출근입니다."; ul.append(li); return; }
+    es.forEach(e=>ul.append(item(e,{deletable: e.uid===me?.id || admin})));
+  }
+
+  function renderMine(list){
+    const ul=$("myList"); ul.replaceChildren();
+    const mine=list.filter(e=>e.uid===me?.id);
+    const yr=String(new Date().getFullYear());
+    const used=mine.filter(e=>COUNTED.has(e.type)&&e.start.startsWith(yr)).reduce((a,e)=>a+workDays(e.start,e.end,e.type),0);
+    $("myTotal").textContent=mine.length?`${yr}년 연차 사용 ${used}일`:"";
+    if(!mine.length){ const li=document.createElement("li"); li.className="empty"; li.textContent="아직 등록한 휴가가 없습니다. 달력에서 날짜를 누르고 등록해 보세요."; ul.append(li); return; }
+    mine.forEach(e=>ul.append(item(e,{showWho:false,deletable:true})));
+  }
+
+  function status(t,warn){ const s=$("status"); s.textContent=t; s.classList.toggle("warn",!!warn); }
+
+  async function refresh(){
+    try{
+      const data=await api.load();
+      members={}; for(const m of data.members) members[m.id]=m.display_name;
+      leaves=data.leaves;
+      const n=new Set(leaves.map(l=>l.user_id)).size;
+      status(`${DEMO?"데모 모드 · 저장되지 않음 · ":""}팀원 ${Object.keys(members).filter(k=>members[k]).length}명 · 휴가 등록자 ${n}명${admin?" · 관리자: 모든 일정 삭제 가능":""}`, DEMO);
+      render();
+    }catch(e){
+      status("일정을 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.",true);
+    }
+  }
+
+  // ---------------- 휴가 등록 ----------------
+  function calc(){
+    const t=$("fType").value, s=$("fStart").value; let e=$("fEnd").value;
+    if(HALF.has(t)&&s){ $("fEnd").value=s; e=s; }
+    $("fEnd").disabled=HALF.has(t);
+    $("fCalc").textContent=(s&&e&&e>=s)?`차감 기준 ${workDays(s,e,t)}일 (주말·공휴일 제외)`:"";
+  }
+  ["fType","fStart","fEnd"].forEach(id=>$(id).addEventListener("change",calc));
+
+  $("form").addEventListener("submit",async ev=>{
+    ev.preventDefault();
+    const type=$("fType").value, start=$("fStart").value, memo=$("fMemo").value.trim();
+    const end=HALF.has(type)?start:$("fEnd").value;
+    const out=$("fMsg");
+    if(!start||!end) return msg(out,"시작일과 종료일을 선택하세요.","err");
+    if(end<start) return msg(out,"종료일이 시작일보다 빠릅니다.","err");
+    if(leaves.some(l=>l.user_id===me.id && l.start_date<=end && start<=l.end_date)) return msg(out,"이미 등록한 휴가와 날짜가 겹칩니다. 기존 건을 삭제한 뒤 다시 등록하세요.","err");
+    $("fSubmit").disabled=true; msg(out,"저장 중…");
+    try{
+      await api.add({type, start_date:start, end_date:end, memo:memo||null});
+      msg(out,`${fmt(start)}${start!==end?" ~ "+fmt(end):""} ${type} 등록 완료`,"ok"); $("fMemo").value="";
+      await refresh();
+    }catch(e){ msg(out,"저장하지 못했습니다. 로그인이 풀렸다면 새로고침 후 다시 시도해 주세요.","err"); }
+    finally{ $("fSubmit").disabled=false; }
   });
+
+  // ---------------- 화면 전환 ----------------
+  $("prev").onclick=()=>{ view.setMonth(view.getMonth()-1); render(); };
+  $("next").onclick=()=>{ view.setMonth(view.getMonth()+1); render(); };
+  $("todayBtn").onclick=()=>{ view=new Date(); view.setDate(1); selected=today; render(); };
+  matchMedia("(max-width:560px)").addEventListener("change",()=>{ if(started) render(); });
+
+  function installTip(){
+    if(store.get("tl-tip-closed")) return;
+    $("installText").textContent = "다음부터 바로 열려면 이 페이지를 즐겨찾기하세요 (Ctrl+D). 로그인 상태는 유지됩니다.";
+    $("installTip").hidden=false;
+  }
+  $("installClose").onclick=()=>{ $("installTip").hidden=true; store.set("tl-tip-closed","1"); };
+
+  let myLoginId="", editMode=false;
+  const ID_RE=/^[0-9A-Za-z가-힣._-]{2,20}$/;
+  // Supabase 비밀번호 최소 6자 규칙에 맞추기 위해 PIN 4자리를 고정 문구로 감싸서 저장
+  const pinPw = pin => `tl-pin-${pin}-calendar`;
+
+  function openSetup(edit){
+    editMode=edit;
+    $("setupEyebrow").textContent = edit ? "내 계정" : "처음 한 번만";
+    $("setupTitle").textContent = edit ? "이름·아이디·PIN 변경" : "내 계정 설정";
+    $("setupDesc").textContent = edit ? "바꿀 항목만 고치세요. PIN 칸을 비워 두면 기존 PIN이 유지됩니다."
+      : "다음부터는 다른 브라우저나 기기에서도 아이디와 숫자 4자리로 바로 들어올 수 있습니다.";
+    $("pwLabel").textContent = edit ? "새 PIN (바꿀 때만, 숫자 4자리)" : "PIN (숫자 4자리)";
+    $("setupBtn").textContent = edit ? "저장" : "저장하고 시작하기";
+    $("setupCancel").hidden = !edit;
+    $("nameInput").value = myName; $("idInput").value = myLoginId || "";
+    $("pwInput").value = ""; $("pw2Input").value = ""; msg($("nameMsg"),"");
+    show("vName"); (myName ? $("idInput") : $("nameInput")).focus();
+  }
+
+  async function enter(user){
+    me=user;
+    // 다른 브라우저에서 PIN을 정했을 수 있으므로, 저장된 정보 대신 서버의 최신 계정 정보로 확인
+    const fresh=await api.freshUser().catch(()=>undefined);
+    if(fresh===null){ me=null; await api.signOut().catch(()=>{}); show("vLogin"); loginMode(false); msg($("pwMsg"),"로그인 정보가 만료되었습니다. 아이디와 PIN으로 다시 로그인하세요.","err"); return; }
+    if(fresh) { user=fresh; me=fresh; }
+    $("setupWho").textContent = user.email ? `현재 로그인된 이메일: ${user.email}` : "";
+    const p=await api.myProfile(user.id).catch(()=>({}));
+    myName=p.display_name||""; myLoginId=p.login_id||"";
+    if(!myName || !myLoginId || !user.user_metadata?.pin_set){ openSetup(false); return; }
+    $("meName").textContent=myName;
+    show("vApp");
+    if(!started){
+      started=true;
+      $("fStart").value=today; $("fEnd").value=today; calc();
+      admin=await api.isAdmin().catch(()=>false);
+      api.live(refresh);
+      installTip();
+    }
+    await refresh();
+  }
+
+  $("nameForm").addEventListener("submit",async ev=>{
+    ev.preventDefault();
+    const out=$("nameMsg");
+    const n=$("nameInput").value.trim(), id=$("idInput").value.trim(), pw=$("pwInput").value, pw2=$("pw2Input").value;
+    if(!n) return msg(out,"표시 이름을 입력하세요.","err");
+    if(!ID_RE.test(id)) return msg(out,"아이디는 한글·영문·숫자 2~20자로, 띄어쓰기 없이 입력하세요.","err");
+    const needPw = !editMode || pw || pw2;
+    if(needPw){
+      if(!/^\d{4}$/.test(pw)) return msg(out,"PIN은 숫자 4자리로 정하세요.","err");
+      if(pw!==pw2) return msg(out,"PIN 확인이 일치하지 않습니다.","err");
+    }
+    $("setupBtn").disabled=true; msg(out,"저장 중…");
+    try{
+      await api.saveProfile(me.id,n,id);
+      myName=n; myLoginId=id;
+      if(needPw) me = await api.setPassword(pinPw(pw)) || me;
+      $("pwInput").value=""; $("pw2Input").value="";
+      if(editMode){ $("meName").textContent=myName; show("vApp"); msg($("fMsg"), needPw?"이름·아이디·PIN을 저장했습니다.":"이름·아이디를 저장했습니다.","ok"); await refresh(); }
+      else await enter(me);
+    }catch(e){
+      if(e&&e.code==="dupId") msg(out,"이미 다른 팀원이 쓰는 아이디입니다. 다른 아이디를 정하세요.","err");
+      else if(e&&e.code==="weak") msg(out,"PIN을 저장하지 못했습니다. 관리자에게 문의해 주세요.","err");
+      else if(e&&e.code==="same") msg(out,"기존과 같은 PIN입니다. 그대로 쓰시려면 PIN 칸을 비워 두세요.","err");
+      else msg(out,"저장하지 못했습니다. 잠시 후 다시 시도해 주세요.","err");
+    }finally{ $("setupBtn").disabled=false; }
+  });
+  $("setupCancel").onclick=()=>show("vApp");
+  $("setupLogout").onclick=async()=>{ await api.signOut(); };
+  $("renameBtn").onclick=()=>openSetup(true);
+  $("logoutBtn").onclick=async()=>{ await api.signOut(); };
+
+  function loginMode(email){
+    $("pwForm").hidden=email; $("toEmail").hidden=email; $("loginForm").hidden=!email;
+    (email?$("email"):$("loginId")).focus();
+  }
+  $("toEmail").onclick=()=>loginMode(true);
+  $("toPw").onclick=()=>loginMode(false);
+
+  $("pwForm").addEventListener("submit",async ev=>{
+    ev.preventDefault();
+    const id=$("loginId").value.trim(), pw=$("loginPw").value, out=$("pwMsg");
+    if(!id||!/^\d{4}$/.test(pw)) return msg(out,"아이디와 숫자 4자리 PIN을 입력하세요.","err");
+    $("pwBtn").disabled=true; msg(out,"확인 중…");
+    const r=await api.signInPw(id,pinPw(pw)).catch(()=>({ok:false,reason:"other"}));
+    $("pwBtn").disabled=false;
+    if(r.ok){ msg(out,""); $("loginPw").value=""; return; }
+    if(r.reason==="bad") return msg(out,"아이디 또는 PIN이 맞지 않습니다. 처음 접속이면 아래 '처음 접속이거나…'를 눌러 이메일로 들어오세요.","err");
+    if(r.reason==="rate") return msg(out,"시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.","err");
+    msg(out,"로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.","err");
+  });
+
+  $("loginForm").addEventListener("submit",async ev=>{
+    ev.preventDefault();
+    const email=$("email").value.trim(), out=$("loginMsg");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg(out,"이메일 주소를 정확히 입력하세요.","err");
+    $("loginBtn").disabled=true; msg(out,"보내는 중…");
+    const r=await api.sendLink(email).catch(()=>({ok:false,reason:"other"}));
+    $("loginBtn").disabled=false;
+    if(r.ok) return msg(out, r.demo?"데모 모드로 들어갑니다…":`${email} 로 로그인 링크를 보냈습니다. 메일함(스팸함 포함)을 확인하고 링크를 눌러 주세요.`,"ok");
+    if(r.reason==="notInvited") return msg(out,"초대받지 않은 이메일입니다. 관리자에게 초대를 요청하세요.","err");
+    if(r.reason==="rate") return msg(out,"메일 요청이 너무 잦습니다. 1~2분 뒤 다시 시도해 주세요.","err");
+    msg(out,"메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.","err");
+  });
+
+  // ---------------- 시작 ----------------
+  (async()=>{
+    if(CFG.TEAM_NAME){ $("loginTeam").textContent=`${CFG.TEAM_NAME} · 팀 휴가 캘린더`; $("appTitle").textContent=`${CFG.TEAM_NAME} 휴가 캘린더`; document.title=`${CFG.TEAM_NAME} 휴가 캘린더`; }
+    $("demoNote").hidden=!DEMO;
+    // 메일 링크가 만료됐을 때 Supabase가 주소에 붙여주는 오류 처리
+    const hp=new URLSearchParams(location.hash.slice(1)+"&"+location.search.slice(1));
+    const linkErr=hp.get("error_description")||hp.get("error");
+    if(linkErr){ history.replaceState(null,"",location.pathname); }
+    api.onAuth((ev,user)=>{
+      if(ev==="SIGNED_OUT"){ me=null; show("vLogin"); loginMode(false); return; }
+      if(user && !me && (ev==="SIGNED_IN"||ev==="INITIAL_SESSION")) enter(user);
+    });
+    const user=await api.session();
+    if(user){ if(!me) enter(user); }
+    else{
+      show("vLogin"); loginMode(!!linkErr);
+      if(linkErr) msg($("loginMsg"),"메일 링크가 만료되었거나 이미 사용되었습니다. 이메일을 입력해 새 링크를 받아 주세요.","err");
+    }
+  })();
 })();
-
-/* ── ANALYZE ── */
-async function analyzeImage() {
-  const key = localStorage.getItem('ap_apiKey');
-  if (!key) { showToast(lang==='ko'?'먼저 API Key를 설정하세요':'Please set your API Key first'); openModal(); return; }
-  if (!uploadedB64) return;
-  const btn = document.getElementById('analyzeBtn');
-  btn.disabled = true; btn.textContent = lang==='ko'?'분석 중...':'Analyzing...';
-  const prompt = lang==='ko'
-    ? `이 건축 메스 이미지를 분석해서 다음 5가지를 한국어로 한 줄씩 답해줘 (번호/항목명 없이 내용만):\n1. 기본 메스 형태\n2. 예상 프로그램/기능\n3. 주요 디자인 특징\n4. 환경/대지 컨텍스트\n5. 전체 건축 개념`
-    : `Analyze this architectural massing image. Give one concise sentence per item (no numbers/headers):\n1. Base massing form\n2. Expected program/functions\n3. Key design features\n4. Site/context\n5. Overall architectural concept`;
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{ parts:[
-        { inline_data:{ mime_type:uploadedMime, data:uploadedB64 } },
-        { text: prompt }
-      ]}] })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    text.split('\n').map(l=>l.trim()).filter(Boolean).forEach((line,i) => {
-      if (steps[i]) steps[i].value = line.replace(/^\d+[\.\)]\s*/,'');
-    });
-    renderSteps();
-    document.getElementById('analysisText').textContent = text;
-    document.getElementById('analysisResult').style.display = 'block';
-    showToast(lang==='ko'?'✓ 분석 완료 — 단계가 자동으로 채워졌습니다':'✓ Analysis complete — steps auto-filled');
-  } catch(e) {
-    showToast((lang==='ko'?'오류: ':'Error: ')+e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = lang==='ko'?'✦ AI로 이미지 분석 → 단계 자동 채우기':'✦ Analyze with AI → Auto-fill Steps';
-  }
-}
-
-/* ── TAB ── */
-function switchTab(tab, el) {
-  activeTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  clearOutput();
-  const g = document.getElementById('genBtn'); if (!g) return;
-  const isImg = tab==='imageGen';
-  g.setAttribute('data-ko', isImg?'✦ Gemini로 이미지 생성':'✦ 프롬프트 생성');
-  g.setAttribute('data-en', isImg?'✦ Generate Image with Gemini':'✦ Generate Prompt');
-  g.textContent = lang==='ko' ? g.getAttribute('data-ko') : g.getAttribute('data-en');
-}
-
-/* ── GENERATE ── */
-function handleGenerate() {
-  if (activeTab==='imageGen') { generateImage(); return; }
-  const s=getStyle(), d=getDtype(), n=getNotes();
-  let p='';
-  if (activeTab==='gemini')     p=buildGeminiPrompt(s,d,steps,n);
-  if (activeTab==='chatgpt')    p=buildChatGPTPrompt(s,d,steps,n);
-  if (activeTab==='midjourney') p=buildMidjourneyPrompt(s,d,steps,n);
-  const out=document.getElementById('promptOut');
-  out.textContent=p; out.classList.add('show');
-  document.getElementById('imgGenWrap').style.display='none';
-  document.getElementById('actionRow').style.display='flex';
-}
-
-/* ── IMAGE GEN ── */
-async function generateImage() {
-  const key = localStorage.getItem('ap_apiKey');
-  if (!key) { showToast(lang==='ko'?'먼저 API Key를 설정하세요':'Please set your API Key first'); openModal(); return; }
-  const btn=document.getElementById('genBtn');
-  btn.disabled=true; btn.textContent=lang==='ko'?'생성 중...':'Generating...';
-  const prompt=buildGeminiPrompt(getStyle(),getDtype(),steps,getNotes());
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${key}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{responseModalities:['IMAGE','TEXT']} })
-    });
-    const data=await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const img=data.candidates?.[0]?.content?.parts?.find(p=>p.inlineData);
-    if (img) {
-      document.getElementById('imgGenResult').src=`data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
-      document.getElementById('imgGenWrap').style.display='block';
-      document.getElementById('promptOut').classList.remove('show');
-      document.getElementById('actionRow').style.display='flex';
-      showToast(lang==='ko'?'✓ 이미지 생성 완료':'✓ Image generated');
-    } else throw new Error(lang==='ko'?'이미지를 생성하지 못했습니다':'No image returned');
-  } catch(e) {
-    const out=document.getElementById('promptOut');
-    out.textContent=(lang==='ko'?'⚠ 직접 생성 실패. 아래 프롬프트를 Gemini에 붙여넣으세요:\n\n':'⚠ Generation failed. Paste this prompt into Gemini:\n\n')+prompt;
-    out.classList.add('show');
-    document.getElementById('actionRow').style.display='flex';
-    showToast((lang==='ko'?'오류: ':'Error: ')+e.message);
-  } finally {
-    btn.disabled=false;
-    btn.textContent=lang==='ko'?'✦ Gemini로 이미지 생성':'✦ Generate Image with Gemini';
-  }
-}
-
-/* ── ACTIONS ── */
-function copyPrompt() {
-  const t=document.getElementById('promptOut')?.textContent; if(!t) return;
-  navigator.clipboard.writeText(t).then(()=>{
-    const b=document.getElementById('copyBtn'), orig=b.textContent;
-    b.textContent='✓ '+(lang==='ko'?'복사됨':'Copied'); b.classList.add('done');
-    setTimeout(()=>{ b.textContent=orig; b.classList.remove('done'); }, 2200);
-  });
-}
-function savePrompt() {
-  const t=document.getElementById('promptOut')?.textContent; if(!t) return;
-  const name=prompt(lang==='ko'?'프롬프트 이름:':'Prompt name:', `Prompt ${new Date().toLocaleDateString()}`);
-  if(!name) return;
-  const saved=JSON.parse(localStorage.getItem('ap_saved')||'[]');
-  saved.unshift({name,text:t,tab:activeTab,style:getStyle(),date:new Date().toISOString().slice(0,10)});
-  localStorage.setItem('ap_saved', JSON.stringify(saved.slice(0,30)));
-  renderSaved(); showToast(lang==='ko'?'✓ 저장되었습니다':'✓ Saved');
-}
-function clearOutput() {
-  const o=document.getElementById('promptOut'); if(o){o.textContent='';o.classList.remove('show');}
-  const a=document.getElementById('actionRow'); if(a)a.style.display='none';
-  const g=document.getElementById('imgGenWrap'); if(g)g.style.display='none';
-}
-function downloadImage() {
-  const img=document.getElementById('imgGenResult'); if(!img?.src) return;
-  const a=document.createElement('a'); a.href=img.src; a.download=`archprompt_${Date.now()}.png`; a.click();
-}
-
-/* ── SAVED ── */
-function renderSaved() {
-  const list=document.getElementById('savedList'); if(!list) return;
-  const saved=JSON.parse(localStorage.getItem('ap_saved')||'[]');
-  if(!saved.length){ list.innerHTML=`<div class="saved-empty">${lang==='ko'?'저장된 프롬프트가 없습니다':'No saved prompts yet'}</div>`; return; }
-  list.innerHTML=saved.map((p,i)=>`
-    <div class="saved-item">
-      <div class="saved-item-info">
-        <div class="saved-name">${esc(p.name)}</div>
-        <div class="saved-meta">${(p.tab||'').toUpperCase()} · ${p.style||''} · ${p.date}</div>
-      </div>
-      <div class="saved-actions">
-        <button class="si-btn load" onclick="loadPrompt(${i})">${lang==='ko'?'불러오기':'Load'}</button>
-        <button class="si-btn del"  onclick="deletePrompt(${i})">${lang==='ko'?'삭제':'Del'}</button>
-      </div>
-    </div>`).join('');
-}
-function loadPrompt(i) {
-  const saved=JSON.parse(localStorage.getItem('ap_saved')||'[]'), p=saved[i]; if(!p) return;
-  const o=document.getElementById('promptOut'); if(o){o.textContent=p.text;o.classList.add('show');}
-  const a=document.getElementById('actionRow'); if(a)a.style.display='flex';
-  showToast(lang==='ko'?'✓ 불러왔습니다':'✓ Loaded');
-}
-function deletePrompt(i) {
-  const saved=JSON.parse(localStorage.getItem('ap_saved')||'[]');
-  saved.splice(i,1); localStorage.setItem('ap_saved',JSON.stringify(saved));
-  renderSaved(); showToast(lang==='ko'?'삭제되었습니다':'Deleted');
-}
-
-/* ── MODAL ── */
-function openModal()  { const i=document.getElementById('apiKeyInput'); if(i) i.value=localStorage.getItem('ap_apiKey')||''; document.getElementById('modalBg')?.classList.add('open'); }
-function closeModal() { document.getElementById('modalBg')?.classList.remove('open'); }
-function saveApiKey() {
-  const k=(document.getElementById('apiKeyInput')?.value||'').trim();
-  if(k){ localStorage.setItem('ap_apiKey',k); showToast(lang==='ko'?'✓ API Key 저장됨':'✓ API Key saved'); }
-  closeModal();
-}
-
-/* ── TOAST ── */
-function showToast(msg) {
-  const t=document.getElementById('toast'); if(!t) return;
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2800);
-}
-
-/* ── INIT ── */
-applyLang(); renderSteps(); renderSaved();
 </script>
 </body>
 </html>
